@@ -1,0 +1,51 @@
+version: '3.4'
+
+services:
+  proxy:
+    image: nginx:1.25
+    restart: on-failure
+    depends_on:
+      - api
+    networks:
+      api-network:
+        ipv4_address: 10.5.0.100
+    ports:
+      - '8080:8080'
+    volumes:
+      - './templates/nginx/nginx.conf:/etc/nginx/nginx.conf:ro'
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '30M'
+        reservations:
+          cpus: '0.3'
+          memory: '15M'
+  api:
+    image: glow-byte-api
+    restart: on-failure
+    build:
+      dockerfile: templates/Dockerfile
+      context: .
+      target: api
+    env_file:
+      - .env.docker
+    networks:
+      - api-network
+    deploy:
+      mode: replicated
+      replicas: 4
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '50M'
+        reservations:
+          cpus: '0.3'
+          memory: '30M'
+
+networks:
+  api-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.5.0.0/16
